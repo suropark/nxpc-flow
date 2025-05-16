@@ -1,6 +1,6 @@
 import { TimeSeriesData, Transaction, PaginatedResponse } from './types';
 
-const API_BASE_URL = 'http://localhost:3000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
 export const fetchTimeSeriesData = async (period: string): Promise<TimeSeriesData[]> => {
   // Actual API call code (commented out)
