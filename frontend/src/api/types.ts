@@ -1,24 +1,35 @@
 export interface Transaction {
   id: string;
-  blockNumber: number;
-  timestamp: string;
-  from: string;
-  to: string;
-  value: string;
+  hash: string;
+  from_address: string;
+  to_address: string;
+  value: number;
+  timestamp: number;
   type: 'inflow' | 'outflow';
-}
-
-export interface FlowStats {
-  totalInflow: string;
-  totalOutflow: string;
-  netFlow: string;
-  inflowChange: number;
-  outflowChange: number;
-  netFlowChange: number;
+  block_number: number;
 }
 
 export interface TimeSeriesData {
-  time: string;
-  inflow: number;
-  outflow: number;
+  time: number;
+  inflow: string;
+  outflow: string;
+  from: string;
+  to: string;
+  amount: string;
+  txHash: string;
+}
+
+export interface PaginatedResponse<T> {
+  success: boolean;
+  data: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    hasMore: boolean;
+  };
+}
+
+export interface ApiError {
+  success: false;
+  error: string;
 }

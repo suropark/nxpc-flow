@@ -9,22 +9,28 @@ export async function saveTransaction(transaction: Transaction) {
   return data;
 }
 
-export async function getTransactions(address: string, type?: 'inflow' | 'outflow', limit = 100, offset = 0) {
-  let query = supabase
-    .from('transactions')
-    .select('*')
-    .or(`from.eq.${address},to.eq.${address}`)
-    .order('timestamp', { ascending: false })
-    .range(offset, offset + limit - 1);
+export async function getTransactions(page: number = 1, limit: number = 10): Promise<Transaction[]> {
+  try {
+    // limit이 20을 초과하지 않도록 설정
+    const safeLimit = Math.min(limit, 20);
+    const offset = (page - 1) * safeLimit;
 
-  if (type) {
-    query = query.eq('type', type);
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('*')
+      .order('timestamp', { ascending: false }) // 최신순 정렬
+      .range(offset, offset + safeLimit - 1);
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching transactions:', {
+      page,
+      limit,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    throw error;
   }
-
-  const { data, error } = await query;
-
-  if (error) throw error;
-  return data;
 }
 
 export async function saveEvents(events: Transaction[]): Promise<void> {

@@ -2,7 +2,7 @@ import { supabase } from '../config/supabase';
 import type { Transaction } from '../types';
 
 interface TimeSeriesData {
-  time: string;
+  time: number;
   inflow: number;
   outflow: number;
 }
@@ -175,51 +175,81 @@ async function updateTimeSeriesForPeriod(
 }
 
 // 시계열 데이터 조회
-export async function getTimeSeriesData(
-  period: '24h' | '7d' | '30d' | '1y',
-  type: 'hourly' | 'daily' | 'monthly' = 'hourly'
-): Promise<TimeSeriesData[]> {
-  try {
-    const now = Math.floor(Date.now() / 1000); // 현재 시간을 초 단위로 변환
-    let startId: number;
+export async function getTimeSeriesData(period: string): Promise<TimeSeriesData[]> {
+  const now = Math.floor(Date.now() / 1000);
+  let startTime: number;
+  let interval: number;
+  let limit: number;
+  let periodType: 'hourly' | 'daily' | 'monthly';
 
-    switch (period) {
-      case '24h':
-        startId = Math.floor((now - 24 * 3600) / 3600);
-        break;
-      case '7d':
-        startId = Math.floor((now - 7 * 86400) / 86400);
-        break;
-      case '30d':
-        startId = Math.floor((now - 30 * 86400) / 86400);
-        break;
-      case '1y':
-        startId = Math.floor((now - 365 * 86400) / (86400 * 30));
-        break;
-    }
-
-    const { data, error } = await supabase
-      .from('flow_time_series_realtime')
-      .select('*')
-      .gte('period_id', startId.toString())
-      .eq('period_type', type)
-      .order('period_id', { ascending: true });
-
-    if (error) throw error;
-
-    return data.map((item) => ({
-      time: formatTimeFromPeriodId(item.period_id, type, period),
-      inflow: Number(item.inflow_amount),
-      outflow: Number(item.outflow_amount),
-    }));
-  } catch (error) {
-    console.error('Error fetching time series data:', {
-      period,
-      type,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-    throw error;
+  switch (period) {
+    case '24h':
+      startTime = now - 24 * 3600; // 24시간 전
+      interval = 3600; // 1시간
+      limit = 24;
+      periodType = 'hourly';
+      break;
+    case '7d':
+      startTime = now - 7 * 86400; // 7일 전
+      interval = 86400; // 1일
+      limit = 7;
+      periodType = 'daily';
+      break;
+    case '30d':
+      startTime = now - 30 * 86400; // 30일 전
+      interval = 86400; // 1일
+      limit = 30;
+      periodType = 'daily';
+      break;
+    case '1y':
+      startTime = now - 365 * 86400; // 1년 전
+      interval = 86400 * 30; // 30일
+      limit = 12;
+      periodType = 'monthly';
+      break;
+    default:
+      startTime = now - 24 * 3600;
+      interval = 3600;
+      limit = 24;
+      periodType = 'hourly';
   }
+
+  // period_type으로 먼저 필터링하고 period_id로 정렬
+  const { data, error } = await supabase
+    .from('flow_time_series_realtime')
+    .select('*')
+    .eq('period_type', periodType)
+    // .gte('period_id', Math.floor(startTime / interval).toString())
+    .order('period_id', { ascending: true })
+    .limit(limit);
+
+  if (error) {
+    throw new Error(`Failed to fetch time series data: ${error.message}`);
+  }
+
+  // 데이터 포인트가 부족한 경우 보간
+  const result: TimeSeriesData[] = [];
+  for (let i = 0; i < limit; i++) {
+    const targetPeriodId = Math.floor(startTime / interval) + i;
+    const point = data?.find((d) => d.period_id === targetPeriodId.toString());
+
+    if (point) {
+      result.push({
+        time: Number(point.first_timestamp),
+        inflow: Number(point.inflow_amount),
+        outflow: Number(point.outflow_amount),
+      });
+    } else {
+      // 데이터가 없는 경우 0으로 채움
+      const timestamp = startTime + i * interval;
+      result.push({
+        time: timestamp,
+        inflow: 0,
+        outflow: 0,
+      });
+    }
+  }
+  return result;
 }
 
 // period_id를 기반으로 시간 포맷팅

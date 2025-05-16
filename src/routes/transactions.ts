@@ -16,36 +16,53 @@ const addressSchema = z.object({
 
 const timeSeriesSchema = z.object({
   period: z.enum(['24h', '7d', '30d', '1y']),
-  type: z.enum(['hourly', 'daily', 'monthly']).optional(),
-});
-
-transactions.get('/:address', zValidator('param', addressSchema), async (c) => {
-  const { address, type, limit, offset } = c.req.valid('param');
-  try {
-    const transactions = await getTransactions(address, type, limit, offset);
-    return c.json({ success: true, data: transactions });
-  } catch (error) {
-    return c.json({ success: false, error: 'Failed to fetch transactions' }, 500);
-  }
-});
-
-transactions.post('/sync', async (c) => {
-  try {
-    await fetchHistoricalData();
-    return c.json({ success: true, message: 'Historical data sync started' });
-  } catch (error) {
-    return c.json({ success: false, error: 'Failed to sync historical data' }, 500);
-  }
 });
 
 // 시계열 데이터 조회
 transactions.get('/time-series', zValidator('query', timeSeriesSchema), async (c) => {
-  const { period, type } = c.req.valid('query');
+  const { period } = c.req.valid('query');
   try {
-    const data = await getTimeSeriesData(period, type);
+    const data = await getTimeSeriesData(period);
     return c.json({ success: true, data });
   } catch (error) {
     return c.json({ success: false, error: 'Failed to fetch time series data' }, 500);
+  }
+});
+
+// 전체 트랜잭션 내역 조회
+transactions.get('/transactions', async (c) => {
+  try {
+    // Query parameters 파싱
+    const page = parseInt(c.req.query('page') || '1');
+    const limit = parseInt(c.req.query('limit') || '10');
+
+    // 유효성 검사
+    if (isNaN(page) || page < 1) {
+      return c.json({ success: false, error: 'Invalid page number' }, 400);
+    }
+    if (isNaN(limit) || limit < 1 || limit > 20) {
+      return c.json({ success: false, error: 'Invalid limit. Must be between 1 and 20' }, 400);
+    }
+
+    const transactions = await getTransactions(page, limit);
+    return c.json({
+      success: true,
+      data: transactions,
+      pagination: {
+        page,
+        limit,
+        hasMore: transactions.length === limit,
+      },
+    });
+  } catch (error) {
+    console.error('Error in transactions route:', error);
+    return c.json(
+      {
+        success: false,
+        error: 'Failed to fetch transactions',
+      },
+      500
+    );
   }
 });
 

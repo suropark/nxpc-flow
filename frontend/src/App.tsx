@@ -1,10 +1,8 @@
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
-import { ArrowUpIcon, ArrowDownIcon } from '@heroicons/react/24/solid';
-import { fetchFlowStats, fetchTimeSeriesData } from './api/flow';
+import { fetchTimeSeriesData } from './api/flow';
 import { TransactionList } from './components/TransactionList';
-import { FlowChart } from './components/charts/FlowChart';
-import { LineChart } from './components/charts/LineChart';
-import { BarChart } from './components/charts/BarChart';
+import { BidirectionalFlowChart } from './components/charts/BidirectionalFlowChart';
+import { BidirectionalLineChart } from './components/charts/BidirectionalLineChart';
 import { useState } from 'react';
 
 const queryClient = new QueryClient();
@@ -19,36 +17,18 @@ const PERIODS = [
 function Dashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState<(typeof PERIODS)[number]['value']>('24h');
 
-  const { data: stats, isLoading: isStatsLoading } = useQuery({
-    queryKey: ['flowStats'],
-    queryFn: fetchFlowStats,
-  });
-
   const { data: timeSeriesData, isLoading: isTimeSeriesLoading } = useQuery({
     queryKey: ['timeSeriesData', selectedPeriod],
     queryFn: () => fetchTimeSeriesData(selectedPeriod),
   });
 
-  if (isStatsLoading || isTimeSeriesLoading) {
+  if (isTimeSeriesLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-lg font-medium text-gray-900">Loading...</div>
       </div>
     );
   }
-
-  // Calculate net flow data
-  const netFlowData = timeSeriesData?.map((item) => ({
-    time: item.time,
-    value: item.inflow - item.outflow,
-  }));
-
-  // Calculate cumulative flow data
-  const cumulativeData = timeSeriesData?.reduce((acc, item, index) => {
-    const prevCumulative = index > 0 ? acc[index - 1].value : 0;
-    const netFlow = item.inflow - item.outflow;
-    return [...acc, { time: item.time, value: prevCumulative + netFlow }];
-  }, [] as Array<{ time: string; value: number }>);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -59,40 +39,6 @@ function Dashboard() {
       </header>
       <main className="py-6">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          {/* Stats */}
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
-              <dt className="truncate text-sm font-medium text-gray-500">Total Inflow</dt>
-              <dd className="mt-1 flex items-baseline justify-between md:block lg:flex">
-                <div className="flex items-baseline text-2xl font-semibold text-green-600">{stats?.totalInflow} NXPC</div>
-                <div className="inline-flex items-baseline rounded-full bg-green-100 px-2.5 py-0.5 text-sm font-medium text-green-800">
-                  <ArrowUpIcon className="-ml-1 mr-0.5 h-5 w-5 flex-shrink-0" />
-                  <span>{stats?.inflowChange}%</span>
-                </div>
-              </dd>
-            </div>
-            <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
-              <dt className="truncate text-sm font-medium text-gray-500">Total Outflow</dt>
-              <dd className="mt-1 flex items-baseline justify-between md:block lg:flex">
-                <div className="flex items-baseline text-2xl font-semibold text-red-600">{stats?.totalOutflow} NXPC</div>
-                <div className="inline-flex items-baseline rounded-full bg-red-100 px-2.5 py-0.5 text-sm font-medium text-red-800">
-                  <ArrowDownIcon className="-ml-1 mr-0.5 h-5 w-5 flex-shrink-0" />
-                  <span>{stats?.outflowChange}%</span>
-                </div>
-              </dd>
-            </div>
-            <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
-              <dt className="truncate text-sm font-medium text-gray-500">Net Flow</dt>
-              <dd className="mt-1 flex items-baseline justify-between md:block lg:flex">
-                <div className="flex items-baseline text-2xl font-semibold text-blue-600">{stats?.netFlow} NXPC</div>
-                <div className="inline-flex items-baseline rounded-full bg-blue-100 px-2.5 py-0.5 text-sm font-medium text-blue-800">
-                  <ArrowUpIcon className="-ml-1 mr-0.5 h-5 w-5 flex-shrink-0" />
-                  <span>{stats?.netFlowChange}%</span>
-                </div>
-              </dd>
-            </div>
-          </div>
-
           {/* Period Selector */}
           <div className="mt-8">
             <div className="sm:flex sm:items-center">
@@ -116,15 +62,9 @@ function Dashboard() {
           </div>
 
           {/* Charts */}
-          <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-2">
-            <FlowChart data={timeSeriesData || []} title="Flow Over Time" />
-            <LineChart data={netFlowData || []} title="Net Flow" color="#0EA5E9" />
-            <BarChart
-              data={timeSeriesData?.map((item) => ({ time: item.time, value: item.inflow })) || []}
-              title="Inflow"
-              color="#10B981"
-            />
-            <LineChart data={cumulativeData || []} title="Cumulative Flow" color="#8B5CF6" />
+          <div className="mt-8 grid grid-cols-1 gap-8">
+            <BidirectionalFlowChart data={timeSeriesData || []} title="Flow Over Time" />
+            <BidirectionalLineChart data={timeSeriesData || []} title="Net Flow" />
           </div>
 
           {/* Recent Transactions */}
