@@ -42,8 +42,7 @@ export function TransactionList() {
   }
 
   return (
-    <div className="rounded-lg bg-white p-6 shadow">
-      <h3 className="mb-4 text-lg font-medium text-gray-900">Recent Transactions</h3>
+    <div className="rounded-lg bg-white p-6">
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>

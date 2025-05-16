@@ -15,7 +15,7 @@ export function BidirectionalFlowChart({ data, title }: BidirectionalFlowChartPr
     return {
       time: format(new Date(item.time * 1000), 'MMM dd HH:mm'),
       inflow: isNaN(inflow) ? 0 : inflow,
-      outflow: isNaN(outflow) ? 0 : -outflow, // 음수로 변환하여 아래쪽에 표시
+      outflow: isNaN(outflow) ? 0 : -outflow, // Convert to negative to display below
     };
   });
 

@@ -2,7 +2,6 @@ import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-quer
 import { fetchTimeSeriesData } from './api/flow';
 import { TransactionList } from './components/TransactionList';
 import { BidirectionalFlowChart } from './components/charts/BidirectionalFlowChart';
-import { BidirectionalLineChart } from './components/charts/BidirectionalLineChart';
 import { useState } from 'react';
 
 const queryClient = new QueryClient();
@@ -64,7 +63,7 @@ function Dashboard() {
           {/* Charts */}
           <div className="mt-8 grid grid-cols-1 gap-8">
             <BidirectionalFlowChart data={timeSeriesData || []} title="Flow Over Time" />
-            <BidirectionalLineChart data={timeSeriesData || []} title="Net Flow" />
+            {/* <BidirectionalLineChart data={timeSeriesData || []} title="Net Flow" /> */}
           </div>
 
           {/* Recent Transactions */}

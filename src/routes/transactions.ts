@@ -18,7 +18,7 @@ const timeSeriesSchema = z.object({
   period: z.enum(['24h', '7d', '30d', '1y']),
 });
 
-// 시계열 데이터 조회
+// Time series data retrieval
 transactions.get('/time-series', zValidator('query', timeSeriesSchema), async (c) => {
   const { period } = c.req.valid('query');
   try {
@@ -29,19 +29,19 @@ transactions.get('/time-series', zValidator('query', timeSeriesSchema), async (c
   }
 });
 
-// 전체 트랜잭션 내역 조회
+// All transaction history retrieval
 transactions.get('/transactions', async (c) => {
   try {
-    // Query parameters 파싱
+    // Parse query parameters
     const page = parseInt(c.req.query('page') || '1');
-    const limit = parseInt(c.req.query('limit') || '10');
+    const limit = parseInt(c.req.query('limit') || '20');
 
-    // 유효성 검사
+    // Validate parameters
     if (isNaN(page) || page < 1) {
       return c.json({ success: false, error: 'Invalid page number' }, 400);
     }
-    if (isNaN(limit) || limit < 1 || limit > 20) {
-      return c.json({ success: false, error: 'Invalid limit. Must be between 1 and 20' }, 400);
+    if (isNaN(limit) || limit < 1 || limit > 100) {
+      return c.json({ success: false, error: 'Invalid limit value' }, 400);
     }
 
     const transactions = await getTransactions(page, limit);

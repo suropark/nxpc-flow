@@ -7,7 +7,7 @@ interface TimeSeriesData {
   outflow: number;
 }
 
-// 트랜잭션이 발생할 때마다 실시간으로 집계 데이터 업데이트
+// Update aggregated data in real-time for each transaction
 export async function updateTimeSeriesData(transactions: Transaction[]): Promise<void> {
   try {
     if (transactions.length === 0) return;
@@ -174,7 +174,7 @@ async function updateTimeSeriesForPeriod(
   }
 }
 
-// 시계열 데이터 조회
+// Time series data retrieval
 export async function getTimeSeriesData(period: string): Promise<TimeSeriesData[]> {
   const now = Math.floor(Date.now() / 1000);
   let startTime: number;
