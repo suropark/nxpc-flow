@@ -1,17 +1,32 @@
-import { createPublicClient, http, parseAbi, getContract, zeroAddress } from 'viem';
+import { createPublicClient, http, parseAbi, getContract, zeroAddress, type PublicClient } from 'viem';
 import { avalanche } from 'viem/chains';
 import { NXPC_TOKEN_ADDRESS, AVALANCHE_RPC_URL, NXPC_DEPLOYED_BLOCK, BRIDGE_TOKENS_ABI, NXPC_BRIDGE_ADDRESS } from '../config/constants';
 import type { Transaction } from '../types';
 import { saveEvents, getLastSyncedBlock, updateLastSyncedBlock } from './transaction';
 
-// Base points for block number and timestamp calculation
-const BASE_BLOCK = 62130279;
-const BASE_TIMESTAMP = 1747382512;
-
-const client = createPublicClient({
+const client: PublicClient = createPublicClient({
   chain: avalanche,
   transport: http(AVALANCHE_RPC_URL),
 });
+
+// Cache for block timestamps to avoid redundant RPC calls
+const blockTimestampCache = new Map<number, number>();
+
+async function getBlockTimestamp(blockNumber: number): Promise<number> {
+  // Check cache first
+  const cachedTimestamp = blockTimestampCache.get(blockNumber);
+  if (cachedTimestamp) {
+    return cachedTimestamp;
+  }
+
+  // Fetch block timestamp from blockchain
+  const block = await client.getBlock({ blockNumber: BigInt(blockNumber) });
+  const timestamp = Number(block.timestamp);
+
+  // Cache the result
+  blockTimestampCache.set(blockNumber, timestamp);
+  return timestamp;
+}
 
 export async function getLatestBlockNumber(): Promise<number> {
   const block = await client.getBlock();
@@ -27,22 +42,26 @@ export async function getPastBridgeEvents(fromBlock: bigint, toBlock: bigint): P
       toBlock,
     });
 
-    return events.map((event) => {
-      const blockNumber = Number(event.blockNumber);
-      // Calculate timestamp based on block number difference from base point
-      const timestamp = BASE_TIMESTAMP + (blockNumber - BASE_BLOCK);
+    // Process events in parallel with Promise.all
+    const transactions = await Promise.all(
+      events.map(async (event) => {
+        const blockNumber = Number(event.blockNumber);
+        const timestamp = await getBlockTimestamp(blockNumber);
 
-      return {
-        id: event.transactionHash,
-        hash: event.transactionHash,
-        from: event.eventName === 'MintBridgeTokens' ? zeroAddress : event.args.sender || zeroAddress,
-        to: event.args.recipient || zeroAddress,
-        value: event.args.amount?.toString() || '0',
-        timestamp,
-        type: event.eventName === 'MintBridgeTokens' ? 'outflow' : 'inflow',
-        blockNumber,
-      };
-    });
+        return {
+          id: event.transactionHash,
+          hash: event.transactionHash,
+          from: event.eventName === 'MintBridgeTokens' ? zeroAddress : event.args.sender || zeroAddress,
+          to: event.args.recipient || zeroAddress,
+          value: event.args.amount?.toString() || '0',
+          timestamp,
+          type: event.eventName === 'MintBridgeTokens' ? 'outflow' : 'inflow',
+          blockNumber,
+        };
+      })
+    );
+
+    return transactions as Transaction[];
   } catch (error) {
     console.error('Error fetching past bridge events:', error);
     throw error;

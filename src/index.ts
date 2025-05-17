@@ -35,7 +35,7 @@ async function startPeriodicSync() {
 }
 
 // 서버 시작 시 즉시 한 번 실행하고, 이후 주기적으로 실행
-// startPeriodicSync();
-// setInterval(startPeriodicSync, SYNC_INTERVAL);
+startPeriodicSync();
+setInterval(startPeriodicSync, SYNC_INTERVAL);
 
 export default app;

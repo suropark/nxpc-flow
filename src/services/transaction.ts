@@ -1,3 +1,4 @@
+import { NXPC_DEPLOYED_BLOCK } from '../config/constants';
 import { supabase } from '../config/supabase';
 import type { Transaction } from '../types';
 import { updateTimeSeriesData } from './timeSeries';
@@ -68,8 +69,10 @@ export async function getLastSyncedBlock(): Promise<number> {
     console.error('Error getting last synced block:', error);
     return 0;
   }
-
-  return data?.last_synced_block || 0;
+  if (data?.last_synced_block > 0) {
+    return data?.last_synced_block || 0;
+  }
+  return NXPC_DEPLOYED_BLOCK;
 }
 
 export async function updateLastSyncedBlock(blockNumber: number) {
