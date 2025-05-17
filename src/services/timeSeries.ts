@@ -23,7 +23,6 @@ export async function updateTimeSeriesData(transactions: Transaction[]): Promise
     // 트랜잭션 데이터 집계
     transactions.forEach((transaction, index) => {
       try {
-        // timestamp가 초 단위로 들어오므로 1000을 곱해서 밀리초로 변환
         const timestamp = Number(transaction.timestamp);
         const value = Number(transaction.value);
         const date = new Date(timestamp * 1000);
@@ -63,6 +62,7 @@ export async function updateTimeSeriesData(transactions: Transaction[]): Promise
         }
         monthlyData.set(monthlyId.toString(), monthlyCurrent);
 
+        // 로깅 개선: 실제 시간과 period ID의 관계를 명확히 표시
         console.log('Aggregated to:');
         console.log(`- Hourly ID: ${hourlyId} (${new Date(hourlyId * 3600 * 1000).toLocaleString()})`);
         console.log(`- Daily ID: ${dailyId} (${new Date(dailyId * 86400 * 1000).toLocaleString()})`);
@@ -144,6 +144,8 @@ async function updateTimeSeriesForPeriod(
       };
 
       console.log(`Period ${periodId}:`, {
+        periodId,
+        firstTimestamp,
         time: new Date(firstTimestamp * 1000).toLocaleString(),
         inflow: values.inflow,
         outflow: values.outflow,

@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-quer
 import { fetchTimeSeriesData } from './api/flow';
 import { TransactionList } from './components/TransactionList';
 import { BidirectionalFlowChart } from './components/charts/BidirectionalFlowChart';
+import { TransactionSnackbar } from './components/TransactionSnackbar';
 import { useState } from 'react';
 
 const queryClient = new QueryClient();
@@ -83,6 +84,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <div className="h-full">
+        <TransactionSnackbar isTestMode={false} />
         <Dashboard />
       </div>
     </QueryClientProvider>
